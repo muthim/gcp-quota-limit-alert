@@ -6,6 +6,10 @@ variable "project_id" {}
 
 variable "region" {}
 
+variable "instance_enabled" {
+    default = 1
+}
+
 variable "cpu_enabled" {
     default = 1
 }
@@ -26,6 +30,10 @@ variable "k80_enabled" {
 }
 variable "v100_enabled" {
     default = 1
+}
+
+variable "instance_threshold" {
+    default = "0.75"
 }
 
 variable "cpu_threshold" {

@@ -3,6 +3,39 @@ provider "google" {
   region = "${var.region}"
 }
 
+resource "google_monitoring_alert_policy" "INSTANCE_quota_check" { //Works for all region by default
+  count = "${var.instance_enabled}"
+  
+  display_name = "INSTANCES count utilization approaching project quota"
+  combiner     = "OR"
+  conditions {
+    display_name = "INSTANCES count approaching project quota"
+    condition_monitoring_query_language {
+      query = <<EOT
+      fetch consumer_quota
+| filter resource.service == 'compute.googleapis.com'
+| { metric serviceruntime.googleapis.com/quota/allocation/usage
+    | align next_older(1d)
+    | group_by [resource.project_id, metric.quota_metric, resource.location],
+        max(val())
+  ; metric serviceruntime.googleapis.com/quota/limit
+    | filter metric.limit_name == 'INSTANCES-per-project-region'
+    | align next_older(1d)
+    | group_by [resource.project_id, metric.quota_metric, resource.location],
+        min(val())
+  }
+| ratio
+| every 1m
+| condition gt(val(), ${var.instance_threshold} '1')
+EOT
+      duration = "60s"
+    }
+  }
+
+    notification_channels = "${google_monitoring_notification_channel.basic.*.name}"
+
+}
+
 resource "google_monitoring_alert_policy" "CPU_quota_check" { //Works for all region by default
   count = "${var.cpu_enabled}"
   
